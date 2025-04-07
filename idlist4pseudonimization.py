@@ -12,10 +12,10 @@ def collect_unique_id_4_pseudonimizatoin(base_path, save_path, output_filename="
 
     os.makedirs(save_path, exist_ok=True)
 
-    # 🔁 Unique ID container
+    # Unique ID container
     unique_ids = set()
 
-    # 🔍 Collect all relevant CSVs
+    # Collect all relevant CSVs
     csv_files = [f for f in os.listdir(base_path) if f.endswith(".csv")]
 
     for file in csv_files:
@@ -35,7 +35,7 @@ def collect_unique_id_4_pseudonimizatoin(base_path, save_path, output_filename="
         except Exception as e:
             print(f"❌ Error reading {file_path}: {e}")
 
-    # ✅ Sort and save
+    # Sort and save
     sorted_ids = sorted(unique_ids)
     df_result = pd.DataFrame(sorted_ids, columns=["study_id"])
     output_file = os.path.join(save_path, output_filename)

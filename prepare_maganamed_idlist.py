@@ -21,7 +21,15 @@ def collect_unique_id_maganamed(base_path, save_path, output_filename):
     unique_participants = set()  # Use set to remove duplicates
 
     # Search for all CSV files in the folder
-    csv_files = [f for f in os.listdir(base_path) if f.endswith(".csv")]
+    # TODO: select the right line for excluded_files
+    excluded_files = {
+        "study-participant-forms.csv", "study-queries.csv", "participants.csv",
+        "Informed-consent.csv", "Kind-of-participant.csv", "End.csv,
+        "Service-characteristics-(Teamleads).csv", "Service-characteristics.csv", "ORCA.csv"
+    }
+    # excluded_files = {"study-participant-forms.csv", "study-queries.csv", "participants.csv"} # If the data from Teamleads also needed
+
+    csv_files = [f for f in os.listdir(base_path) if f.endswith(".csv") and f not in excluded_files]
 
     for file in csv_files:
         file_path = os.path.join(base_path, file)
@@ -43,7 +51,7 @@ def collect_unique_id_maganamed(base_path, save_path, output_filename):
     # Convert to DataFrame and save
     unique_participants_df = pd.DataFrame(sorted_unique_participants, columns=['participant_identifier'])
     output_file = os.path.join(save_path, output_filename)
-    unique_participants_df.to_csv(output_file, index=False)
+    unique_participants_df.to_csv(output_file, sep=';', index=False)
 
     print(f"✅ Unique MaganaMed IDs have been sorted and saved to {output_file}")
     return unique_participants_df

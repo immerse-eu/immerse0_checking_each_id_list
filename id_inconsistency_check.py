@@ -48,52 +48,6 @@ def compare_redcap_maganamed_ids(redcap_df, maganamed_df, save_path):
     else:
         print("✅ No missing IDs from maganamed side.")
 
-# def compare_redcap_maganamed_ids(redcap_df, maganamed_df, save_path):
-#     """
-#     Compares study_id differences between REDCap and maganamed, and saves missing IDs separately.
-#
-#     Args:
-#         redcap_df (pd.DataFrame): REDCap dataframe (must contain 'record_id' column)
-#         maganamed_df (pd.DataFrame): maganamed dataframe (must contain 'participant_identifier' column)
-#         save_path (str): Folder path to save the output files
-#     """
-#     if not os.path.exists(save_path):
-#         os.makedirs(save_path)
-#         # print(f"📁 Created output directory: {os.path.abspath(save_path)}")
-#
-#     # Extract ID sets
-#     redcap_ids = set(redcap_df['record_id'])
-#     maganamed_ids = set(maganamed_df['participant_identifier'])
-#
-#     # IDs present in REDCap but missing in maganamed
-#     missing_in_maganamed = redcap_ids - maganamed_ids
-#     if missing_in_maganamed:
-#         df_missing_maganamed = pd.DataFrame({'study_id': list(missing_in_maganamed)})
-#         df_missing_maganamed['note'] = 'Present in REDCap, missing in maganamed'
-#         # output_path_maganamed = os.path.join(save_path, 'missing_in_maganamed.csv')
-#         # df_missing_maganamed.to_csv(output_path_maganamed, index=False, sep=';')
-#         # print(f"✅⚠️ Saved missing_in_maganamed.csv: {len(df_missing_maganamed)} IDs")
-#         output_path_maganamed = os.path.join(save_path, 'missing_in_maganamed.xlsx')
-#         df_missing_maganamed.to_excel(output_path_maganamed, index=False, engine='openpyxl')
-#         print(f"✅⚠️ Saved missing_in_maganamed.xlsx: {len(df_missing_maganamed)} IDs")
-#     else:
-#         print("✅ No missing IDs from REDCap side.")
-#
-#     # IDs present in maganamed but missing in REDCap
-#     missing_in_redcap = maganamed_ids - redcap_ids
-#     if missing_in_redcap:
-#         df_missing_redcap = pd.DataFrame({'study_id': list(missing_in_redcap)})
-#         df_missing_redcap['note'] = 'Present in maganamed, missing in REDCap'
-#         # output_path_redcap = os.path.join(save_path, 'missing_in_redcap_fromMaganaMed.csv')
-#         # df_missing_redcap.to_csv(output_path_redcap, index=False, sep=';')
-#         # print(f"✅⚠️ Saved missing_in_redcap__fromMaganaMed.csv: {len(df_missing_redcap)} IDs")
-#         output_path_redcap = os.path.join(save_path, 'missing_in_redcap_fromMaganaMed.xlsx')
-#         df_missing_redcap.to_excel(output_path_redcap, index=False, engine='openpyxl')
-#         print(f"✅⚠️ Saved missing_in_redcap__fromMaganaMed.xlsx: {len(df_missing_redcap)} IDs")
-#     else:
-#         print("✅ No missing IDs from maganamed side.")
-
-
 
 def compare_redcap_dmmh_ids(redcap_df, dmmh_df, save_path):
     """
@@ -139,8 +93,6 @@ def compare_redcap_dmmh_ids(redcap_df, dmmh_df, save_path):
         print(f"✅⚠️ Saved missing_in_redcap_fromDMMH.xlsx: {len(df_missing_redcap)} IDs")
     else:
         print("✅ No missing IDs from dmmh side.")
-
-
 
 
 
@@ -235,4 +187,74 @@ def compare_redcap_movisensSensing_ids(redcap_df, movisSensing_df, save_path):
     else:
         print("✅ No missing IDs from movisensSensing side.")
 
+
+# Optional
+def merge_maganamed_with_redcap(
+    maganamed_csv_path,
+    redcap_csv_path,
+    output_csv_path,
+    missing_in_redcap_log_path,
+    missing_in_maganamed_log_path
+):
+    """
+    Merges MaganaMed ID list with REDCap data by 'participant_identifier' ↔ 'record_id' matching.
+    Saves both unmatched MaganaMed IDs and unmatched REDCap IDs separately.
+
+    Args:
+        maganamed_csv_path (str): Path to MaganaMed ID list CSV.
+        redcap_csv_path (str): Path to REDCap data CSV.
+        output_csv_path (str): Output path for merged CSV.
+        missing_in_redcap_log_path (str): Path for log of IDs missing in REDCap.
+        missing_in_maganamed_log_path (str): Path for log of IDs missing in MaganaMed.
+    """
+    df_maganamed = pd.read_csv(maganamed_csv_path, sep=';')
+    df_redcap = pd.read_csv(redcap_csv_path, sep=';')
+
+    if 'participant_identifier' not in df_maganamed.columns:
+        print("❌ 'participant_identifier' column not found in MaganaMed file.")
+        return
+
+    if 'record_id' not in df_redcap.columns:
+        print("❌ 'record_id' column not found in REDCap file.")
+        return
+
+    # Merge on ID
+    merged_df = pd.merge(
+        df_maganamed,
+        df_redcap,
+        left_on='participant_identifier',
+        right_on='record_id',
+        how='left'
+    )
+
+    # 1. Present in MaganaMed but missing in REDCap
+    missing_redcap = merged_df[merged_df['record_id'].isna()][['participant_identifier']]
+    if not missing_redcap.empty:
+        missing_redcap.to_csv(missing_in_redcap_log_path, sep=';', index=False)
+        print(f"⚠️ Missing in REDCap: saved to {missing_in_redcap_log_path}")
+    else:
+        print("✅ All MaganaMed IDs matched to REDCap.")
+
+    # 2. Present in REDCap but missing in MaganaMed
+    redcap_ids = set(df_redcap['record_id'].dropna().astype(str))
+    maganamed_ids = set(df_maganamed['participant_identifier'].dropna().astype(str))
+    missing_maganamed_ids = sorted(redcap_ids - maganamed_ids)
+
+    if missing_maganamed_ids:
+        df_missing_maganamed = pd.DataFrame(missing_maganamed_ids, columns=['record_id'])
+        df_missing_maganamed.to_csv(missing_in_maganamed_log_path, sep=';', index=False)
+        print(f"✅⚠️ Missing in MaganaMed: saved to {missing_in_maganamed_log_path}")
+    else:
+        print("✅ All REDCap IDs matched to MaganaMed.")
+
+    # Drop unnecessary record_id column after merging
+    if 'record_id' in merged_df.columns:
+        merged_df.drop(columns=['record_id'], inplace=True)
+
+    # Sort by participant_identifier alphabetically
+    merged_df = merged_df.sort_values(by='participant_identifier').reset_index(drop=True)
+
+    # Save merged result
+    merged_df.to_csv(output_csv_path, sep=';', index=False)
+    print(f"✅ Merged file saved to: {output_csv_path}")
 
