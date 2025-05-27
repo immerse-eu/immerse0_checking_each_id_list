@@ -3,21 +3,13 @@ import os
 import re
 
 
-def collect_unique_id_movisensESM(base_path, save_path, output_filename):
-    """
-    Reads all XLSX files from subfolders starting with 'IMMERSE_T' under base_path,
-    collects unique 'participant_id' values, sorts them, and saves to CSV.
-
-    Parameters:
-        base_path (str): Root folder path where target subfolders are located.
-        save_path (str): Folder where the result file will be saved.
-        output_filename (str): Name of the output CSV file.
-    """
+def collect_unique_id_movisens_esm(base_path, save_path, output_filename):
     os.makedirs(save_path, exist_ok=True)
     unique_ids = set()
 
     # Only subfolders starting with "IMMERSE_T"
     for folder_name in os.listdir(base_path):
+
         if folder_name.startswith("IMMERSE_T"):
             subfolder_path = os.path.join(base_path, folder_name)
             if not os.path.isdir(subfolder_path):
@@ -38,28 +30,18 @@ def collect_unique_id_movisensESM(base_path, save_path, output_filename):
 
     # Sort and save
     sorted_ids = sorted(str(i) for i in unique_ids)
-    df_result = pd.DataFrame(sorted_ids, columns=["participant_id"])
+    df_result = pd.DataFrame(sorted_ids, columns=["participant_identifier"])
     output_file = os.path.join(save_path, output_filename)
-    df_result.to_csv(output_file, sep=';', index=False)
+    df_result.to_csv(output_file, index=False)
 
     print(f"✅ Unique 'participant_id' values saved to: {output_file}")
     return df_result
 
 
-def collect_unique_id_movisensSensing(base_path, save_path, output_filename):
-    """
-    Reads all XLSX files from subfolders starting with 'IMMERSE_Sensing_' under base_path,
-    collects unique 'study_id' values, sorts them, and saves to CSV.
-
-    Parameters:
-        base_path (str): Root folder path where target subfolders are located.
-        save_path (str): Folder where the result file will be saved.
-        output_filename (str): Name of the output CSV file.
-    """
+def collect_unique_id_movisens_sensing(base_path, save_path, output_filename):
     os.makedirs(save_path, exist_ok=True)
     unique_ids = set()
 
-    # Only subfolders starting with "IMMERSE_Sensing_"
     for folder_name in os.listdir(base_path):
         if folder_name.startswith("IMMERSE_Sensing_"):
             subfolder_path = os.path.join(base_path, folder_name)
@@ -81,33 +63,25 @@ def collect_unique_id_movisensSensing(base_path, save_path, output_filename):
 
     # Sort and save
     sorted_ids = sorted(str(i) for i in unique_ids)
-    df_result = pd.DataFrame(sorted_ids, columns=["study_id"])
+    df_result = pd.DataFrame(sorted_ids, columns=["participant_identifier"])
     output_file = os.path.join(save_path, output_filename)
-    df_result.to_csv(output_file, sep=';', index=False)
+    df_result.to_csv(output_file, index=False)
 
-    print(f"✅ Unique 'study_id' values saved to: {output_file}")
+    if output_filename:
+        print(f"✅ Unique 'participant_identifier' values saved to: {output_file}")
     return df_result
 
 
+def analyze_and_categorize_ids_ESM(input_folder, input_filename, save_path, valid_output_filename="valid_ids_esm.csv", error_output_filename="error_ids_esm.csv"):
 
-def analyze_and_categorize_ids_ESM(input_folder, input_filename, save_path, valid_output_filename="valid_ids.csv", error_output_filename="error_ids.csv"):
-    """
-    Analyzes the saved participant_id values and classifies them into valid and invalid IDs.
-
-    Parameters:
-        input_folder (str): Path to the folder containing the input file.
-        input_filename (str): Name of the file that contains the list of IDs to be analyzed.
-        save_path (str): Folder where the result files will be saved.
-        valid_output_filename (str): Name of the file to save valid IDs.
-        error_output_filename (str): Name of the file to save invalid IDs.
-    """
     input_file = os.path.join(input_folder, input_filename)
+    print('input_file', input_file)
     os.makedirs(save_path, exist_ok=True)  # Create the output folder if it doesn't exist
 
     try:
         df = pd.read_csv(input_file)
-        if "participant_id" not in df.columns:
-            print("❌ Error: 'participant_id' column does not exist.")
+        if "participant_identifier" not in df.columns:
+            print("❌ Error: 'participant_identifier' column does not exist.")
             return
     except Exception as e:
         print(f"❌ Error reading file: {input_file}, Error: {e}")
@@ -124,19 +98,19 @@ def analyze_and_categorize_ids_ESM(input_folder, input_filename, save_path, vali
     valid_ids = []
     error_ids = []
 
-    for id_value in df["participant_id"].dropna().astype(str):
+    for id_value in df["participant_identifier"].dropna().astype(str):
         if valid_pattern_hyphen.match(id_value) or valid_pattern_underscore.match(id_value):
             valid_ids.append(id_value)  # Store valid ID
         else:
             error_ids.append(id_value)  # Store invalid ID
 
     # **Save valid IDs**
-    valid_ids_df = pd.DataFrame(sorted(valid_ids), columns=["valid_participant_id"])
+    valid_ids_df = pd.DataFrame(sorted(valid_ids), columns=["valid_participant_identifier"])
     valid_output_file = os.path.join(save_path, valid_output_filename)
     valid_ids_df.to_csv(valid_output_file, index=False)
 
     # **Save invalid IDs**
-    error_ids_df = pd.DataFrame(sorted(error_ids), columns=["error_participant_id"])
+    error_ids_df = pd.DataFrame(sorted(error_ids), columns=["error_participant_identifier"])
     error_output_file = os.path.join(save_path, error_output_filename)
     error_ids_df.to_csv(error_output_file, index=False)
 
@@ -144,24 +118,15 @@ def analyze_and_categorize_ids_ESM(input_folder, input_filename, save_path, vali
     print(f"✅⚠️ Invalid IDs have been saved to {error_output_file}")
 
 
-def analyze_and_categorize_ids_Sensing(input_folder, input_filename, save_path, valid_output_filename="valid_ids.csv", error_output_filename="error_ids.csv"):
-    """
-    Analyzes the saved study_id values and classifies them into valid and invalid IDs.
+def analyze_and_categorize_ids_Sensing(input_folder, input_filename, save_path, valid_output_filename="valid_ids_sensing.csv", error_output_filename="error_ids_sensing.csv"):
 
-    Parameters:
-        input_folder (str): Path to the folder containing the input file.
-        input_filename (str): Name of the file that contains the list of IDs to be analyzed.
-        save_path (str): Folder where the result files will be saved.
-        valid_output_filename (str): Name of the file to save valid IDs.
-        error_output_filename (str): Name of the file to save invalid IDs.
-    """
     input_file = os.path.join(input_folder, input_filename)
     os.makedirs(save_path, exist_ok=True)  # Create the output folder if it doesn't exist
 
     try:
         df = pd.read_csv(input_file)
-        if "study_id" not in df.columns:
-            print("❌ Error: 'study_id' column does not exist.")
+        if "participant_identifier" not in df.columns:
+            print("❌ Error: 'participant_identifier' column does not exist.")
             return
     except Exception as e:
         print(f"❌ Error reading file: {input_file}, Error: {e}")
@@ -178,19 +143,19 @@ def analyze_and_categorize_ids_Sensing(input_folder, input_filename, save_path, 
     valid_ids = []
     error_ids = []
 
-    for id_value in df["study_id"].dropna().astype(str):
+    for id_value in df["participant_identifier"].dropna().astype(str):
         if valid_pattern_hyphen.match(id_value) or valid_pattern_underscore.match(id_value):
             valid_ids.append(id_value)  # Store valid ID
         else:
             error_ids.append(id_value)  # Store invalid ID
 
     # **Save valid IDs**
-    valid_ids_df = pd.DataFrame(sorted(valid_ids), columns=["valid_study_id"])
+    valid_ids_df = pd.DataFrame(sorted(valid_ids), columns=["valid_participant_identifier"])
     valid_output_file = os.path.join(save_path, valid_output_filename)
     valid_ids_df.to_csv(valid_output_file, index=False)
 
     # **Save invalid IDs**
-    error_ids_df = pd.DataFrame(sorted(error_ids), columns=["error_study_id"])
+    error_ids_df = pd.DataFrame(sorted(error_ids), columns=["error_participant_identifier"])
     error_output_file = os.path.join(save_path, error_output_filename)
     error_ids_df.to_csv(error_output_file, index=False)
 

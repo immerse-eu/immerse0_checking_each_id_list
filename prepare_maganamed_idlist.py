@@ -2,42 +2,20 @@ import pandas as pd
 import os
 import re
 
-def collect_unique_id_maganamed(base_path, save_path, output_filename):
-    """
-    Reads all CSV files in the specified folder, collects unique values from the 'participant_identifier' column,
-    sorts them alphabetically, and saves them as a CSV file.
 
-    Parameters:
-        base_path (str): Path to the folder containing the CSV files.
-        save_path (str): Folder where the result file will be saved.
-        output_filename (str): Name of the output file (default: "idlist4pseudonymization.csv")
-    """
+def collect_unique_id_maganamed(base_path, save_path, output_filename):
+    unique_participants = set()
+
     if not os.path.exists(base_path):
         print(f"❌ The specified folder does not exist: {base_path}")
-        return
+    os.makedirs(save_path, exist_ok=True)
 
-    os.makedirs(save_path, exist_ok=True)  # Create the output folder if it doesn't exist
-
-    unique_participants = set()  # Use set to remove duplicates
-
-    # Search for all CSV files in the folder
-    # TODO: select the right line for excluded_files
-    excluded_files = {
-        "study-participant-forms.csv", "study-queries.csv", "participants.csv",
-        "Informed-consent.csv", "Kind-of-participant.csv", "End.csv,
-        "Service-characteristics-(Teamleads).csv", "Service-characteristics.csv", "ORCA.csv"
-    }
-    # excluded_files = {"study-participant-forms.csv", "study-queries.csv", "participants.csv"} # If the data from Teamleads also needed
-
-    csv_files = [f for f in os.listdir(base_path) if f.endswith(".csv") and f not in excluded_files]
+    csv_files = [f for f in os.listdir(base_path) if f.endswith(".csv")]
 
     for file in csv_files:
         file_path = os.path.join(base_path, file)
-
         try:
             data = pd.read_csv(file_path, sep=";", encoding="utf-8", on_bad_lines='skip')
-
-            # If the "participant_identifier" column exists, add its values
             if "participant_identifier" in data.columns:
                 unique_participants.update(data["participant_identifier"].dropna().unique())
             else:
@@ -45,29 +23,21 @@ def collect_unique_id_maganamed(base_path, save_path, output_filename):
         except Exception as e:
             print(f"❌ Error reading file: {file_path}, Error: {e}")
 
-    # **Sort alphabetically**
     sorted_unique_participants = sorted(unique_participants)
 
-    # Convert to DataFrame and save
     unique_participants_df = pd.DataFrame(sorted_unique_participants, columns=['participant_identifier'])
     output_file = os.path.join(save_path, output_filename)
     unique_participants_df.to_csv(output_file, sep=';', index=False)
 
-    print(f"✅ Unique MaganaMed IDs have been sorted and saved to {output_file}")
+    if os.path.exists(output_file):
+        print(f"✅ Unique MaganaMed IDs have been sorted and saved to {output_file}")
+    else:
+        print("Error in saving file")
     return unique_participants_df
 
 
-def analyze_and_categorize_ids(input_folder, input_filename, save_path, valid_output_filename="valid_ids.csv", error_output_filename="error_ids.csv"):
-    """
-    Analyzes the saved participant_identifier values and classifies them into valid and invalid IDs.
-
-    Parameters:
-        input_folder (str): Path to the folder containing the input file.
-        input_filename (str): Name of the file that contains the list of IDs to be analyzed.
-        save_path (str): Folder where the result files will be saved.
-        valid_output_filename (str): Name of the file to save valid IDs.
-        error_output_filename (str): Name of the file to save invalid IDs.
-    """
+def analyze_and_categorize_ids(input_folder, input_filename, save_path, valid_output_filename="valid_ids_maganamed.csv",
+                               error_output_filename="error_ids_maganamed.csv"):
     input_file = os.path.join(input_folder, input_filename)
     os.makedirs(save_path, exist_ok=True)  # Create the output folder if it doesn't exist
 
@@ -85,7 +55,8 @@ def analyze_and_categorize_ids(input_folder, input_filename, save_path, valid_ou
     valid_types = ["P", "C", "A"]
 
     valid_pattern_hyphen = re.compile(r"^I-(" + "|".join(valid_centers) + r")-(" + "|".join(valid_types) + r")-\d{3}$")
-    valid_pattern_underscore = re.compile(r"^I_(" + "|".join(["WI", "MA"]) + r")_(" + "|".join(valid_types) + r")_\d{3}$")
+    valid_pattern_underscore = re.compile(
+        r"^I_(" + "|".join(["WI", "MA"]) + r")_(" + "|".join(valid_types) + r")_\d{3}$")
 
     # **Lists for classifying IDs**
     valid_ids = []
